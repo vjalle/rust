@@ -172,7 +172,7 @@ extern "C" void LLVMRustTimeTraceProfilerFinish(const char *FileName) {
 #ifdef LLVM_COMPONENT_TRICORE
 #define SUBTARGET_TRICORE SUBTARGET(Tricore)
 #else
-#define SUBTARGET_TRICORE 2 d
+#define SUBTARGET_TRICORE
 #endif
 
 #define GEN_SUBTARGETS                                                         \

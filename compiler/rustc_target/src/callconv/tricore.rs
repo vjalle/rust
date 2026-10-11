@@ -1,4 +1,4 @@
-use rustc_abi::{HasDataLayout, Size, TyAbiInterface};
+use rustc_abi::{BackendRepr, FieldsShape, HasDataLayout, Primitive, Size, TyAbiInterface};
 
 use crate::callconv::{ArgAbi, FnAbi, Reg, Uniform};
 use crate::spec::HasTargetSpec;
@@ -13,7 +13,16 @@ where
         return;
     }
 
-    if !arg.layout.is_aggregate(){
+    // Preserve pointer types for LLVM's address-register return convention.
+    // A pointer field in a C aggregate still uses the data-register convention.
+    if let BackendRepr::Scalar(scalar) = arg.layout.backend_repr
+        && matches!(scalar.primitive(), Primitive::Pointer(_))
+        && (matches!(arg.layout.fields, FieldsShape::Primitive) || arg.layout.is_transparent())
+    {
+        return;
+    }
+
+    if !arg.layout.is_aggregate() {
         arg.extend_integer_width_to(32);
     }
 
@@ -34,6 +43,14 @@ where
 {
     if !arg.layout.is_sized() {
         // Not touching this...
+        return;
+    }
+
+    // Casting a pointer to i32 here loses the EABI A4-A7 register bank.
+    if let BackendRepr::Scalar(scalar) = arg.layout.backend_repr
+        && matches!(scalar.primitive(), Primitive::Pointer(_))
+        && (matches!(arg.layout.fields, FieldsShape::Primitive) || arg.layout.is_transparent())
+    {
         return;
     }
 
